@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="bag_filename" default=""/>
+  <arg name="base_link_frame" default="blue/base_link"/>
+  <arg name="map_frame_id" default="blue/map"/>
+  <arg name="odom_frame_id" default="blue/odom"/>
+  <arg name="points_topic" default="/blue/velodyne_points"/>
+  <arg name="urdf_filename" default="vlp16-imu-blue.urdf"/>
+
+  <include file="$(find hdl_graph_slam)/launch/hdl_graph_slam_kopterworx.launch" pass_all_args="true"/>
+
+  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find hdl_graph_slam)/rviz/blue.rviz"/>
+
+  <param name="/use_sim_time" value="true" />
+
+  <include file="$(find erl_drone)/launch/robot_state_publisher.launch" />
+
+  <node name="pose_to_global" pkg="erl_drone" type="pose2global.py" output="screen" ns="$(env UAV_NAMESPACE)">
+    <remap from="uav/cartographer/pose" to="hdl_graph_slam/pose"/>
+  </node>
+
+  <node name="playbag" type="play" pkg="rosbag" args="$(arg bag_filename) --clock /tf:=/tf_junk /blue/lpms/imu_data:=/gpsimu_driver/imu_data"/>
+
+  <node name="record_poses" pkg="rosbag" type="record"
+      args="/tf
+            /vrpn_client_node/$(env UAV_NAMESPACE)/pose
+            /odom
+            /blue/hdl_graph_slam/pose
+            -O $(arg bag_filename)_hdl_poses" />
+
+</launch>
